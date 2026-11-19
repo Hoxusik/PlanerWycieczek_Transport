@@ -190,7 +190,28 @@ Reguły:
 
 **Limit oczekiwania:** 2 s po stronie klientów. Typowa odpowiedź trwa kilka milisekund.
 
-### 5.3 Endpointy pomocnicze
+### 5.3 `GET /api/v1/locations/{locationId}/transport-options`: wszystkie tryby dla jednej lokalizacji
+
+Przyjmuje `locationId` atrakcji albo lokalu w ścieżce URL. Zwraca wszystkie **dostępne** tryby dotarcia ze `start` z czasem i kosztem w jedną stronę:
+
+```json
+GET /api/v1/locations/ATR_001/transport-options
+
+{
+  "fromLocationId": "start",
+  "toLocationId": "ATR_001",
+  "options": [
+    { "mode": "WALK",             "durationMin": 15, "costGrosze": 0 },
+    { "mode": "PUBLIC_TRANSPORT", "durationMin": 9,  "costGrosze": 480 },
+    { "mode": "CAR",              "durationMin": 6,  "costGrosze": 1320 }
+  ]
+}
+```
+
+- Tryby bez połączenia są pominięte. Kolejność to zawsze `WALK`, `PUBLIC_TRANSPORT`, `CAR`.
+- Nieznany `locationId` (albo `start`) daje `200` i `"options": []`.
+
+### 5.4 Endpointy pomocnicze
 
 | Metoda i ścieżka | Odpowiedź |
 |---|---|
@@ -283,7 +304,7 @@ Przykład ręcznego liczenia, `PUBLIC_TRANSPORT`, start → `ATR_002` i z powrot
 src/main/java/pl/psso/transport/
 ├─ TransportApplication.java       # start aplikacji
 ├─ api/
-│  ├─ TransportController.java     # POST /api/v1/routes, GET /modes, GET /locations
+│  ├─ TransportController.java     # POST /routes, GET /locations/{id}/transport-options, /modes, /locations
 │  ├─ RouteDtos.java               # RouteRequest, LocationPair, RouteResponse, RouteResult, ErrorResponse
 │  ├─ ApiExceptionHandler.java     # mapowanie błędów na 400 / 500
 │  └─ CorsConfig.java

@@ -1,0 +1,21 @@
+{
+  "fromLocationId": "start",
+  "toLocationId": "ATR_001",
+  "options": [
+    {
+      "mode": "WALK",
+      "durationMin": 15,
+      "costGrosze": 0
+    },
+    {
+      "mode": "PUBLIC_TRANSPORT",
+      "durationMin": 9,
+      "costGrosze": 480
+    },
+    {
+      "mode": "CAR",
+      "durationMin": 6,
+      "costGrosze": 1320
+    }
+  ]
+}

@@ -73,6 +73,39 @@ class TransportApplicationTests {
     }
 
     @Test
+    void transportOptionsListAllModesForAttraction() throws Exception {
+        mvc.perform(get("/api/v1/locations/ATR_001/transport-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromLocationId").value("start"))
+                .andExpect(jsonPath("$.toLocationId").value("ATR_001"))
+                .andExpect(jsonPath("$.options.length()").value(3))
+                .andExpect(jsonPath("$.options[0].mode").value("WALK"))
+                .andExpect(jsonPath("$.options[0].durationMin").value(15))
+                .andExpect(jsonPath("$.options[0].costGrosze").value(0))
+                .andExpect(jsonPath("$.options[1].mode").value("PUBLIC_TRANSPORT"))
+                .andExpect(jsonPath("$.options[1].costGrosze").value(480))
+                .andExpect(jsonPath("$.options[2].mode").value("CAR"))
+                .andExpect(jsonPath("$.options[2].costGrosze").value(1320));
+    }
+
+    @Test
+    void transportOptionsSkipUnavailableModes() throws Exception {
+        // rest-04: brak odcinka pieszo
+        mvc.perform(get("/api/v1/locations/rest-04/transport-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.options.length()").value(2))
+                .andExpect(jsonPath("$.options[0].mode").value("PUBLIC_TRANSPORT"));
+    }
+
+    @Test
+    void transportOptionsForUnknownLocationAreEmpty() throws Exception {
+        mvc.perform(get("/api/v1/locations/NIE_MA/transport-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.toLocationId").value("NIE_MA"))
+                .andExpect(jsonPath("$.options.length()").value(0));
+    }
+
+    @Test
     void healthIsUp() throws Exception {
         mvc.perform(get("/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
     }

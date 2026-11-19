@@ -53,6 +53,17 @@ public final class RouteDtos {
         }
     }
 
+    /** Odpowiedź GET /api/v1/locations/{locationId}/transport-options. */
+    public record TransportOptionsResponse(
+            String fromLocationId,
+            String toLocationId,
+            List<TransportOption> options) {
+    }
+
+    /** Jeden dostępny sposób dotarcia: tryb, czas w minutach, koszt w groszach (w jedną stronę). */
+    public record TransportOption(TravelMode mode, int durationMin, int costGrosze) {
+    }
+
     public record ErrorResponse(String error, String message) {
     }
 }

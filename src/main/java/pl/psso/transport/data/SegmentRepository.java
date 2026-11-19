@@ -24,6 +24,14 @@ public interface SegmentRepository extends JpaRepository<Segment, Long> {
         return findBothDirections(from, to, mode).stream().findFirst();
     }
 
+    /** Wszystkie odcinki (we wszystkich trybach) między dwoma punktami, w obu kierunkach. */
+    @Query("""
+            select s from Segment s
+            where (s.fromLocationId = :a and s.toLocationId = :b)
+               or (s.fromLocationId = :b and s.toLocationId = :a)
+            """)
+    List<Segment> findAllModesBetween(@Param("a") String a, @Param("b") String b);
+
     @Query("""
             select distinct id from (
               select s.fromLocationId as id from Segment s

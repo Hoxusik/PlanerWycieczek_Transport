@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import pl.psso.transport.api.RouteDtos.RouteRequest;
 import pl.psso.transport.api.RouteDtos.RouteResponse;
+import pl.psso.transport.api.RouteDtos.TransportOptionsResponse;
 import pl.psso.transport.data.SegmentRepository;
 import pl.psso.transport.domain.RouteService;
 import pl.psso.transport.domain.TravelMode;
@@ -39,6 +41,16 @@ public class TransportController {
             throw new IllegalArgumentException("Za dużo par w jednym żądaniu (max " + maxPairs + ")");
         }
         return new RouteResponse(request.mode(), routeService.resolve(request.mode(), request.pairs()));
+    }
+
+    /**
+     * Wszystkie dostępne sposoby dotarcia ze startu do lokalizacji (np. atrakcji)
+     * z czasem i kosztem. Brak połączenia / nieznane ID = 200 z pustą listą options.
+     */
+    @GetMapping("/locations/{locationId}/transport-options")
+    public TransportOptionsResponse transportOptions(@PathVariable String locationId) {
+        return new TransportOptionsResponse(RouteService.START, locationId,
+                routeService.optionsFromStart(locationId));
     }
 
     /** Pomocniczo: dostępne tryby przemieszczania się. */
