@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -29,7 +31,7 @@ class TransportApplicationTests {
                   {"fromLocationId":"start","toLocationId":"rest-04"},
                   {"fromLocationId":"start","toLocationId":"start"},
                   {"fromLocationId":"start","toLocationId":"rest-01"},
-                  {"fromLocationId":"ATR_001","toLocationId":"rest-01"}
+                  {"fromLocationId":"ATR_001","toLocationId":"NIE_MA"}
                 ]}""";
         mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
@@ -44,7 +46,6 @@ class TransportApplicationTests {
                 .andExpect(jsonPath("$.results[3].durationMin").value(0))
                 .andExpect(jsonPath("$.results[4].status").value("OK"))
                 .andExpect(jsonPath("$.results[4].durationMin").value(9))
-                // poza modelem "od startu": brak odcinka atrakcja -> lokal
                 .andExpect(jsonPath("$.results[5].status").value("NO_CONNECTION"));
     }
 
@@ -69,7 +70,8 @@ class TransportApplicationTests {
         mvc.perform(get("/api/v1/locations"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value(containsInAnyOrder(
-                        "ATR_001", "ATR_002", "ATR_004", "rest-01", "rest-02", "rest-03", "rest-04", "start")));
+                        "ATR_001", "ATR_002", "ATR_004", "ATR_005",
+                        "rest-01", "rest-02", "rest-03", "rest-04", "start")));
     }
 
     @Test
@@ -103,6 +105,54 @@ class TransportApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.toLocationId").value("NIE_MA"))
                 .andExpect(jsonPath("$.options.length()").value(0));
+    }
+
+    @Test
+    void transportOptionsBetweenLocationsUseTheSameSegmentsInBothDirections() throws Exception {
+        String path = "/api/v1/locations/{from}/to/{to}/transport-options";
+        mvc.perform(get(path, "ATR_001", "rest-01"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromLocationId").value("ATR_001"))
+                .andExpect(jsonPath("$.toLocationId").value("rest-01"))
+                .andExpect(jsonPath("$.options.length()").value(2))
+                .andExpect(jsonPath("$.options[0].mode").value("WALK"))
+                .andExpect(jsonPath("$.options[0].durationMin").value(12))
+                .andExpect(jsonPath("$.options[0].costGrosze").value(0))
+                .andExpect(jsonPath("$.options[1].mode").value("PUBLIC_TRANSPORT"))
+                .andExpect(jsonPath("$.options[1].durationMin").value(10))
+                .andExpect(jsonPath("$.options[1].costGrosze").value(480));
+
+        mvc.perform(get(path, "rest-01", "ATR_001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromLocationId").value("rest-01"))
+                .andExpect(jsonPath("$.toLocationId").value("ATR_001"))
+                .andExpect(jsonPath("$.options.length()").value(2))
+                .andExpect(jsonPath("$.options[0].durationMin").value(12))
+                .andExpect(jsonPath("$.options[1].costGrosze").value(480));
+
+        mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content("""
+                {"mode":"WALK","pairs":[{"fromLocationId":"ATR_001","toLocationId":"rest-01"}]}
+                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.results[0].status").value("OK"))
+                .andExpect(jsonPath("$.results[0].durationMin").value(12));
+    }
+
+    @Test
+    void transportOptionsBetweenLocationsWithoutASegmentAreEmpty() throws Exception {
+        mvc.perform(get("/api/v1/locations/ATR_001/to/NIE_MA/transport-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fromLocationId").value("ATR_001"))
+                .andExpect(jsonPath("$.toLocationId").value("NIE_MA"))
+                .andExpect(jsonPath("$.options.length()").value(0));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"start,rest-01", "ATR_001,start", "ATR_001,ATR_001", "' ',rest-01", "ATR_001,' '"})
+    void transportOptionsBetweenLocationsRejectInvalidIds(String from, String to) throws Exception {
+        mvc.perform(get("/api/v1/locations/{from}/to/{to}/transport-options", from, to))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
     }
 
     @Test

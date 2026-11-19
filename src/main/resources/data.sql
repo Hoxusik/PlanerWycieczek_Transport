@@ -2,11 +2,11 @@
 -- Spring Boot wykonuje ten plik przy KAŻDYM starcie: tabela jest czyszczona i wypełniana od nowa,
 -- więc baza zawsze odpowiada temu plikowi z repo. Zmiany na stałe wprowadzaj TUTAJ.
 --
--- Model: jeden punkt startowy 'start'. Trzymamy tylko odcinki start <-> atrakcja i start <-> lokal.
+-- Dane obejmują każdą parę różnych punktów, z uwzględnieniem 'start'.
 --  - czas w minutach, koszt w groszach (na 1 osobę)
---  - odcinki są symetryczne: start -> X = X -> start (jeden wiersz na parę i tryb)
---  - brak wiersza = NO_CONNECTION (dotyczy też par bez 'start', np. atrakcja -> lokal)
--- Tryby: WALK (0 gr, max 3,5 km), PUBLIC_TRANSPORT (bilet 480 gr), CAR (taxi: 900 gr + 350 gr/km)
+--  - odcinki są symetryczne: A -> B = B -> A (jeden wiersz na parę i tryb)
+--  - brak wiersza = NO_CONNECTION w /routes albo pominięcie trybu w /transport-options
+-- Tryby: WALK (0 gr), PUBLIC_TRANSPORT (bilet 480 gr), CAR (szacunkowa cena taxi)
 
 DELETE FROM segment;
 
@@ -21,6 +21,8 @@ INSERT INTO segment (from_location_id, to_location_id, mode, duration_min, cost_
 ('start', 'ATR_004', 'WALK', 29, 0),
 ('start', 'ATR_004', 'PUBLIC_TRANSPORT', 13, 480),
 ('start', 'ATR_004', 'CAR', 8, 1740),
+('start', 'ATR_005', 'WALK', 24, 0),
+('start', 'ATR_005', 'PUBLIC_TRANSPORT', 11, 480),
 -- start <-> lokale
 ('start', 'rest-01', 'WALK', 9, 0),
 ('start', 'rest-01', 'PUBLIC_TRANSPORT', 8, 480),
@@ -32,4 +34,65 @@ INSERT INTO segment (from_location_id, to_location_id, mode, duration_min, cost_
 ('start', 'rest-03', 'PUBLIC_TRANSPORT', 14, 480),
 ('start', 'rest-03', 'CAR', 9, 1880),
 ('start', 'rest-04', 'PUBLIC_TRANSPORT', 26, 480),
-('start', 'rest-04', 'CAR', 17, 3245);
+('start', 'rest-04', 'CAR', 17, 3245),
+-- atrakcje <-> atrakcje
+('ATR_001', 'ATR_002', 'WALK', 10, 0),
+('ATR_001', 'ATR_004', 'WALK', 23, 0),
+('ATR_001', 'ATR_004', 'PUBLIC_TRANSPORT', 13, 480),
+('ATR_001', 'ATR_004', 'CAR', 8, 1530),
+('ATR_001', 'ATR_005', 'WALK', 17, 0),
+('ATR_001', 'ATR_005', 'CAR', 7, 1390),
+('ATR_002', 'ATR_004', 'WALK', 18, 0),
+('ATR_002', 'ATR_004', 'PUBLIC_TRANSPORT', 12, 480),
+('ATR_002', 'ATR_005', 'WALK', 12, 0),
+('ATR_004', 'ATR_005', 'WALK', 16, 0),
+('ATR_004', 'ATR_005', 'PUBLIC_TRANSPORT', 11, 480),
+('ATR_004', 'ATR_005', 'CAR', 7, 1390),
+-- atrakcje <-> lokale
+('ATR_001', 'rest-01', 'WALK', 12, 0),
+('ATR_001', 'rest-01', 'PUBLIC_TRANSPORT', 10, 480),
+('ATR_001', 'rest-02', 'WALK', 21, 0),
+('ATR_001', 'rest-02', 'CAR', 8, 1530),
+('ATR_001', 'rest-03', 'WALK', 27, 0),
+('ATR_001', 'rest-03', 'PUBLIC_TRANSPORT', 15, 480),
+('ATR_001', 'rest-03', 'CAR', 9, 1705),
+('ATR_001', 'rest-04', 'PUBLIC_TRANSPORT', 24, 480),
+('ATR_001', 'rest-04', 'CAR', 15, 2965),
+('ATR_002', 'rest-01', 'WALK', 17, 0),
+('ATR_002', 'rest-01', 'PUBLIC_TRANSPORT', 12, 480),
+('ATR_002', 'rest-02', 'WALK', 14, 0),
+('ATR_002', 'rest-03', 'WALK', 24, 0),
+('ATR_002', 'rest-03', 'PUBLIC_TRANSPORT', 14, 480),
+('ATR_002', 'rest-03', 'CAR', 9, 1635),
+('ATR_002', 'rest-04', 'WALK', 58, 0),
+('ATR_002', 'rest-04', 'PUBLIC_TRANSPORT', 22, 480),
+('ATR_002', 'rest-04', 'CAR', 14, 2580),
+('ATR_004', 'rest-01', 'WALK', 26, 0),
+('ATR_004', 'rest-01', 'PUBLIC_TRANSPORT', 14, 480),
+('ATR_004', 'rest-02', 'WALK', 13, 0),
+('ATR_004', 'rest-03', 'WALK', 15, 0),
+('ATR_004', 'rest-03', 'CAR', 7, 1355),
+('ATR_004', 'rest-04', 'WALK', 52, 0),
+('ATR_004', 'rest-04', 'PUBLIC_TRANSPORT', 20, 480),
+('ATR_004', 'rest-04', 'CAR', 13, 2440),
+('ATR_005', 'rest-01', 'WALK', 20, 0),
+('ATR_005', 'rest-01', 'PUBLIC_TRANSPORT', 13, 480),
+('ATR_005', 'rest-01', 'CAR', 8, 1495),
+('ATR_005', 'rest-02', 'WALK', 11, 0),
+('ATR_005', 'rest-03', 'WALK', 19, 0),
+('ATR_005', 'rest-03', 'PUBLIC_TRANSPORT', 12, 480),
+('ATR_005', 'rest-04', 'WALK', 55, 0),
+('ATR_005', 'rest-04', 'PUBLIC_TRANSPORT', 21, 480),
+-- lokale <-> lokale
+('rest-01', 'rest-02', 'WALK', 16, 0),
+('rest-01', 'rest-03', 'WALK', 29, 0),
+('rest-01', 'rest-03', 'PUBLIC_TRANSPORT', 16, 480),
+('rest-01', 'rest-03', 'CAR', 9, 1740),
+('rest-01', 'rest-04', 'PUBLIC_TRANSPORT', 25, 480),
+('rest-01', 'rest-04', 'CAR', 16, 3105),
+('rest-02', 'rest-03', 'WALK', 20, 0),
+('rest-02', 'rest-03', 'CAR', 8, 1495),
+('rest-02', 'rest-04', 'PUBLIC_TRANSPORT', 23, 480),
+('rest-03', 'rest-04', 'WALK', 47, 0),
+('rest-03', 'rest-04', 'PUBLIC_TRANSPORT', 19, 480),
+('rest-03', 'rest-04', 'CAR', 12, 2265);

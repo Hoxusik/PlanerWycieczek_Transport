@@ -39,7 +39,11 @@ public class RouteService {
         if (START.equals(locationId)) {
             return List.of();
         }
-        return repository.findAllModesBetween(START, locationId).stream()
+        return optionsBetween(START, locationId);
+    }
+
+    public List<TransportOption> optionsBetween(String fromLocationId, String toLocationId) {
+        return repository.findAllModesBetween(fromLocationId, toLocationId).stream()
                 .sorted(Comparator.comparing(Segment::getMode))
                 .map(s -> new TransportOption(s.getMode(), s.getDurationMin(), s.getCostGrosze()))
                 .toList();
