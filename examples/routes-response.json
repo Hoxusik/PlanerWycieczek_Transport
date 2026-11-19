@@ -1,0 +1,38 @@
+{
+  "mode": "WALK",
+  "results": [
+    {
+      "fromLocationId": "start",
+      "toLocationId": "attr-01",
+      "status": "OK",
+      "durationMin": 15,
+      "costGrosze": 0
+    },
+    {
+      "fromLocationId": "attr-01",
+      "toLocationId": "rest-01",
+      "status": "OK",
+      "durationMin": 15,
+      "costGrosze": 0
+    },
+    {
+      "fromLocationId": "rest-01",
+      "toLocationId": "attr-03",
+      "status": "OK",
+      "durationMin": 21,
+      "costGrosze": 0
+    },
+    {
+      "fromLocationId": "attr-03",
+      "toLocationId": "start",
+      "status": "OK",
+      "durationMin": 28,
+      "costGrosze": 0
+    },
+    {
+      "fromLocationId": "start",
+      "toLocationId": "attr-06",
+      "status": "NO_CONNECTION"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+server:
+  # 0.0.0.0 = serwis widoczny w sieci lokalnej (nie tylko na localhost)
+  address: 0.0.0.0
+  port: 8083
+
+spring:
+  application:
+    name: transport
+  datasource:
+    # Baza H2 w pliku ./data/transport.mv.db (nic nie trzeba instalować)
+    url: jdbc:h2:file:./data/transport;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      # Podgląd i edycja danych: http://localhost:8083/h2-console
+      # JDBC URL: jdbc:h2:file:./data/transport;AUTO_SERVER=TRUE, user: sa, hasło puste
+      enabled: true
+      path: /h2-console
+      settings:
+        # konsola dostępna tylko z tego komputera, nie z sieci
+        web-allow-others: false
+
+management:
+  endpoints:
+    web:
+      # /health zamiast /actuator/health
+      base-path: /
+      exposure:
+        include: health
+
+transport:
+  # plik CSV z danymi startowymi (classpath: albo file:)
+  seed-file: classpath:segments.csv
+  # true  = przy każdym starcie tabela jest czyszczona i wczytywana z CSV (dane zawsze zgodne z repo)
+  # false = CSV wczytywany tylko do pustej bazy, zmiany z konsoli H2 przetrwają restart
+  reset-data-on-start: true
+  # maksymalna liczba par w jednym żądaniu
+  max-pairs: 500

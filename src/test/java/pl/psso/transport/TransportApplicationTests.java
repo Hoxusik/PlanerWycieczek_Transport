@@ -1,0 +1,72 @@
+package pl.psso.transport;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:transport-test;DB_CLOSE_DELAY=-1")
+@AutoConfigureMockMvc
+class TransportApplicationTests {
+
+    @Autowired
+    MockMvc mvc;
+
+    @Test
+    void returnsTimeAndCostInBothDirectionsAndNoConnection() throws Exception {
+        String body = """
+                {"mode":"WALK","pairs":[
+                  {"fromLocationId":"start","toLocationId":"attr-01"},
+                  {"fromLocationId":"attr-01","toLocationId":"start"},
+                  {"fromLocationId":"start","toLocationId":"attr-06"},
+                  {"fromLocationId":"start","toLocationId":"start"}
+                ]}""";
+        mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("WALK"))
+                .andExpect(jsonPath("$.results[0].status").value("OK"))
+                .andExpect(jsonPath("$.results[0].durationMin").value(15))
+                .andExpect(jsonPath("$.results[0].costGrosze").value(0))
+                .andExpect(jsonPath("$.results[1].fromLocationId").value("attr-01"))
+                .andExpect(jsonPath("$.results[1].durationMin").value(15))
+                .andExpect(jsonPath("$.results[2].status").value("NO_CONNECTION"))
+                .andExpect(jsonPath("$.results[2].durationMin").doesNotExist())
+                .andExpect(jsonPath("$.results[3].durationMin").value(0));
+    }
+
+    @Test
+    void unknownModeIsBadRequest() throws Exception {
+        String body = """
+                {"mode":"TELEPORT","pairs":[{"fromLocationId":"start","toLocationId":"attr-01"}]}""";
+        mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
+    }
+
+    @Test
+    void emptyPairsIsBadRequest() throws Exception {
+        mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"mode\":\"CAR\",\"pairs\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void listsLocationsFromDatabase() throws Exception {
+        mvc.perform(get("/api/v1/locations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(11))
+                .andExpect(jsonPath("$[0]").value("attr-01"));
+    }
+
+    @Test
+    void healthIsUp() throws Exception {
+        mvc.perform(get("/health")).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("UP"));
+    }
+}
