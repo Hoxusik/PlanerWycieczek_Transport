@@ -53,7 +53,7 @@ public final class RouteDtos {
         }
     }
 
-    /** Odpowiedź GET /api/v1/locations/{locationId}/transport-options. */
+    /** Dostępne opcje dojazdu dla wskazanej pary lokalizacji. */
     public record TransportOptionsResponse(
             String fromLocationId,
             String toLocationId,

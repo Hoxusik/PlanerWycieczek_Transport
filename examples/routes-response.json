@@ -30,7 +30,9 @@
     {
       "fromLocationId": "ATR_001",
       "toLocationId": "rest-01",
-      "status": "NO_CONNECTION"
+      "status": "OK",
+      "durationMin": 12,
+      "costGrosze": 0
     }
   ]
 }

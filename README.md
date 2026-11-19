@@ -72,40 +72,29 @@ propozycje      └──────────────┘           └�
 
 Transport i Warunki dnia nie zależą od nikogo, więc **jako pierwsze udostępniają przykładowe odpowiedzi**.
 
-### Model odległości w Transporcie: wszystko liczone od jednego punktu `start`
+### Model odcinków w Transporcie
 
-W mieście jest **jeden punkt startowy** (`start`). Transport zna odległości **tylko**:
-- **start ↔ atrakcja** (dojazd do atrakcji i powrót),
-- **start ↔ lokal gastronomiczny** (dojazd do lokalu i powrót).
-
-**Nie** liczymy odległości atrakcja ↔ atrakcja ani atrakcja ↔ lokal. Taka para dostaje odpowiedź `NO_CONNECTION`.
-
-Kto o co pyta:
-- **Atrakcje** pytają o `start → atrakcja` dla swoich atrakcji.
-- **Gastronomia** pyta o `start → lokal` dla swoich lokali.
-- **Planer** pyta o dowolne pary ze `start`, np. powrót `atrakcja → start`.
-
-> Slajdy proponowały też odcinki atrakcja → lokal → atrakcja. Nasz zespół celowo zawęził zakres do odległości od startu. Ten model trzeba uzgodnić z Gastronomią i Planerem.
+W mieście jest jeden punkt startowy (`start`). Atrakcje i Gastronomia mogą pobierać opcje dojazdu ze startu, a Planer może pytać również o odcinki między punktami wycieczki, np. `atrakcja → lokal → atrakcja`. Każde zapytanie dotyczy zapisanych odcinków dla wskazanej pary.
 
 ---
 
 ## 3. Nasza odpowiedzialność (zespół Transport)
 
 - Przechowujemy **tabelę odcinków**: dla pary lokalizacji i trybu znamy czas w minutach i koszt w groszach.
-- Udostępniamy **jedną operację HTTP**, wspólną dla wszystkich trzech klientów. Dostaje listę par `fromLocationId`–`toLocationId` i tryb, a zwraca dla każdej pary czas i koszt albo informację o braku połączenia.
+- API zwraca czas i koszt dla wielu par w jednym trybie (`POST /routes`) albo wszystkie dostępne tryby dla jednej pary (`GET` opisane w sekcjach 5.3 i 5.4).
 - **Nie** nadajemy `locationId` atrakcjom ani lokalom. Robią to Atrakcje i Gastronomia, a my używamy ich identyfikatorów. Sami nadajemy tylko `locationId` punktu startowego (`start`).
 - **Nie** wołamy żadnego innego serwisu. Pogoda nie wpływa na przejazdy.
 - **Nie** układamy planu ani nie liczymy budżetu. To robi Planer.
 
 ### Zakres tabeli odcinków
 
-| Odcinek | Kto o niego pyta | W tabeli? |
+| Odcinek | Kto o niego pyta | W aktualnych danych? |
 |---|---|---|
 | start ↔ atrakcja | Atrakcje, Planer | tak |
 | start ↔ lokal | Gastronomia, Planer | tak |
-| atrakcja ↔ atrakcja | — | nie (`NO_CONNECTION`) |
-| atrakcja ↔ lokal | — | nie (`NO_CONNECTION`) |
-| lokal ↔ lokal | — | nie (`NO_CONNECTION`) |
+| atrakcja ↔ atrakcja | Planer | tak |
+| atrakcja ↔ lokal | Planer | tak |
+| lokal ↔ lokal | Planer | tak |
 
 ---
 
@@ -122,7 +111,7 @@ Kto o co pyta:
 
 Założenia:
 - Odcinki są **symetryczne**: A → B ma ten sam czas i koszt co B → A.
-- Przejazd w obrębie tego samego punktu (A → A) zwraca `0` min i `0` gr.
+- W `POST /api/v1/routes` przejazd w obrębie tego samego punktu (A → A) zwraca `0` min i `0` gr.
 - Tryby `WALK`, `PUBLIC_TRANSPORT` i `CAR` są tymczasowe, do potwierdzenia z Planerem.
 
 ---
@@ -165,25 +154,25 @@ Odpowiedź `200 OK`:
     { "fromLocationId": "ATR_001", "toLocationId": "start",   "status": "OK", "durationMin": 15, "costGrosze": 0 },
     { "fromLocationId": "start",   "toLocationId": "rest-01", "status": "OK", "durationMin": 9,  "costGrosze": 0 },
     { "fromLocationId": "start",   "toLocationId": "rest-04", "status": "NO_CONNECTION" },
-    { "fromLocationId": "ATR_001", "toLocationId": "rest-01", "status": "NO_CONNECTION" }
+    { "fromLocationId": "ATR_001", "toLocationId": "rest-01", "status": "OK", "durationMin": 12, "costGrosze": 0 }
   ]
 }
 ```
 
-W tym przykładzie `start → rest-04` daje `NO_CONNECTION`, bo pieszo jest za daleko. `ATR_001 → rest-01` też daje `NO_CONNECTION`, bo to para bez `start`, a takich nie liczymy.
+W tym przykładzie `start → rest-04` daje `NO_CONNECTION`, ponieważ w danych brakuje tego odcinka w trybie `WALK`.
 
 Reguły:
 - `mode` jest wymagany. `pairs` jest wymagane, niepuste i ma maksymalnie 500 elementów.
 - `results` mają **tę samą kolejność i liczbę elementów** co `pairs`.
 - `status: "OK"` oznacza, że `durationMin` i `costGrosze` są wypełnione.
 - `status: "NO_CONNECTION"` oznacza, że pól `durationMin` i `costGrosze` **nie ma**. Dotyczy też nieznanego `locationId`.
-- Wszystkie tryby mają jeden endpoint. Klient, który chce porównać tryby, wysyła kilka żądań.
+- Dla wszystkich trybów jednej pary użyj `GET` opisanego w sekcji 5.3 lub 5.4. W `POST` jedno żądanie obejmuje jeden tryb.
 
 ### 5.2 Brak połączenia a awaria (ważne)
 
 | Sytuacja | Odpowiedź Transportu | Co powinien zrobić klient |
 |---|---|---|
-| brak połączenia między punktami | `200`, `status: NO_CONNECTION` przy parze | odrzucić tę opcję i szukać innej; to może prowadzić do „brak pasującego planu” |
+| brak połączenia między punktami | `200`, `NO_CONNECTION` w wyniku `POST` albo `"options": []` w endpointach opcji | szukać innej pary lub innego trybu |
 | błędne żądanie (brak pól, nieznany tryb, pusta lista) | `400` + `{"error":"BAD_REQUEST","message":"..."}` | poprawić żądanie (błąd po stronie klienta) |
 | wewnętrzny błąd Transportu | `500` + `{"error":"INTERNAL_ERROR","message":"..."}` | potraktować jak niedostępność |
 | serwis nie odpowiada | timeout / connection refused | po **2 s** przerwać i pokazać „usługa Transport niedostępna”, **nie** „brak pasującego planu” |
@@ -211,7 +200,31 @@ GET /api/v1/locations/ATR_001/transport-options
 - Tryby bez połączenia są pominięte. Kolejność to zawsze `WALK`, `PUBLIC_TRANSPORT`, `CAR`.
 - Nieznany `locationId` (albo `start`) daje `200` i `"options": []`.
 
-### 5.4 Endpointy pomocnicze
+### 5.4 `GET /api/v1/locations/{fromLocationId}/to/{toLocationId}/transport-options`
+
+Zwraca dostępne tryby dojazdu między dwiema różnymi lokalizacjami poza `start`. Kolejność ID w odpowiedzi odpowiada kolejności w URL, a opcje są sortowane tak jak w sekcji 5.3.
+
+```http
+GET /api/v1/locations/ATR_001/to/rest-01/transport-options
+```
+
+Odpowiedź `200 OK` dla tej pary zawiera dwie opcje.
+
+```json
+{
+  "fromLocationId": "ATR_001",
+  "toLocationId": "rest-01",
+  "options": [
+    { "mode": "WALK", "durationMin": 12, "costGrosze": 0 },
+    { "mode": "PUBLIC_TRANSPORT", "durationMin": 10, "costGrosze": 480 }
+  ]
+}
+```
+
+- Pusta lista oznacza brak odcinka lub nieznane ID.
+- `start`, dwa identyczne ID lub ID składające się wyłącznie z białych znaków dają `400 BAD_REQUEST`.
+
+### 5.5 Endpointy pomocnicze
 
 | Metoda i ścieżka | Odpowiedź |
 |---|---|
@@ -266,29 +279,30 @@ Testy używają osobnej bazy w pamięci (`jdbc:h2:mem:...`), więc nie ruszają 
 
 ### Dane syntetyczne (tymczasowe)
 
-Każda lokalizacja ma umowną odległość od `start`. Czas i koszt policzono ze wzorów:
+Czasy i koszty są szacunkami do demonstracji. Przy przygotowaniu pierwotnych odcinków ze `start` wykorzystano umowne odległości i poniższe wzory.
 
 | Tryb | Czas | Koszt | Uwagi |
 |---|---|---|---|
-| `WALK` | 12 min/km | 0 gr | brak odcinków > 3,5 km |
+| `WALK` | 12 min/km | 0 gr | |
 | `PUBLIC_TRANSPORT` | 5 min + 3 min/km | 480 gr (bilet) | |
 | `CAR` (taxi) | 3 min + 2 min/km | 900 gr + 350 gr/km | |
 
-Lokalizacje: `start`, atrakcje `ATR_001`, `ATR_002`, `ATR_004` oraz lokale `rest-01`, `rest-02`, `rest 03`, `rest-04`.
-Dla `rest-04` tryb `WALK` zwraca `NO_CONNECTION`.
+Lokalizacje to `start`, atrakcje `ATR_001`, `ATR_002`, `ATR_004`, `ATR_005` oraz lokale `rest-01`, `rest-02`, `rest-03`, `rest-04`.
+Każda para różnych punktów ma od jednego do trzech trybów. Na odcinku `start ↔ rest-04` tryb `WALK` jest niedostępny.
 
 > **Do zrobienia:** dopasować czasy i koszty do rzeczywistych tras.
 
-### Pełna tabela odcinków (czas min / koszt gr, w obie strony)
+### Odcinki ze `start` (czas min / koszt gr, w obie strony)
 
 | Od `start` do | WALK | PUBLIC_TRANSPORT | CAR |
 |---|---|---|---|
 | `ATR_001` | 15 / 0 | 9 / 480 | 6 / 1320 |
 | `ATR_002` | 21 / 0 | 11 / 480 | 7 / 1495 |
 | `ATR_004` | 29 / 0 | 13 / 480 | 8 / 1740 |
+| `ATR_005` | 24 / 0 | 11 / 480 | brak |
 | `rest-01` | 9 / 0 | 8 / 480 | 5 / 1145 |
 | `rest-02` | 22 / 0 | 11 / 480 | 7 / 1530 |
-| `rest 03` | 34 / 0 | 14 / 480 | 9 / 1880 |
+| `rest-03` | 34 / 0 | 14 / 480 | 9 / 1880 |
 | `rest-04` | brak | 26 / 480 | 17 / 3245 |
 
 Przykład ręcznego liczenia, `PUBLIC_TRANSPORT`, start → `ATR_002` i z powrotem: 11 + 11 = **22 min**, 480 + 480 = **960 gr**.
@@ -304,7 +318,7 @@ Przykład ręcznego liczenia, `PUBLIC_TRANSPORT`, start → `ATR_002` i z powrot
 src/main/java/pl/psso/transport/
 ├─ TransportApplication.java       # start aplikacji
 ├─ api/
-│  ├─ TransportController.java     # POST /routes, GET /locations/{id}/transport-options, /modes, /locations
+│  ├─ TransportController.java     # trasy, opcje dojazdu, tryby i lokalizacje
 │  ├─ RouteDtos.java               # RouteRequest, LocationPair, RouteResponse, RouteResult, ErrorResponse
 │  ├─ ApiExceptionHandler.java     # mapowanie błędów na 400 / 500
 │  └─ CorsConfig.java
@@ -359,7 +373,7 @@ Aby zmienić dane na stałe, edytuj `src/main/resources/data.sql` i zrestartuj s
 - `NO_CONNECTION` to **nie** błąd: zawsze zwracamy go jako `200`.
 - Transport nie wywołuje innych serwisów i nie czyta niczyjej bazy. Nasza baza H2 jest wyłącznie nasza, a inni widzą dane tylko przez API.
 - Dane zmieniaj w `data.sql`, a nie wyłącznie w konsoli H2, bo zmiany z konsoli znikają po restarcie.
-- Liczymy tylko odcinki ze `start`. Nie dodawaj odcinków atrakcja ↔ atrakcja ani atrakcja ↔ lokal.
+- Zapisuj jeden wiersz na parę lokalizacji i tryb. Wiersz obsługuje oba kierunki.
 - Po każdej zmianie uruchom `.\mvnw.cmd test`, a gdy zmienia się format odpowiedzi, zaktualizuj [examples/](examples/).
 - Pracuj na osobnych gałęziach i scalaj do `main`.
 

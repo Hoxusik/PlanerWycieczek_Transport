@@ -53,6 +53,22 @@ public class TransportController {
                 routeService.optionsFromStart(locationId));
     }
 
+    @GetMapping("/locations/{fromLocationId}/to/{toLocationId}/transport-options")
+    public TransportOptionsResponse transportOptionsBetween(
+            @PathVariable String fromLocationId, @PathVariable String toLocationId) {
+        if (fromLocationId.isBlank() || toLocationId.isBlank()) {
+            throw new IllegalArgumentException("Identyfikatory lokalizacji muszą być niepuste");
+        }
+        if (RouteService.START.equals(fromLocationId) || RouteService.START.equals(toLocationId)) {
+            throw new IllegalArgumentException("Ta operacja wymaga dwóch lokalizacji poza startem");
+        }
+        if (fromLocationId.equals(toLocationId)) {
+            throw new IllegalArgumentException("Lokalizacja początkowa i docelowa muszą być różne");
+        }
+        return new TransportOptionsResponse(fromLocationId, toLocationId,
+                routeService.optionsBetween(fromLocationId, toLocationId));
+    }
+
     /** Pomocniczo: dostępne tryby przemieszczania się. */
     @GetMapping("/modes")
     public List<TravelMode> modes() {

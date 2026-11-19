@@ -13,7 +13,6 @@ import pl.psso.transport.domain.TravelMode;
 
 /**
  * Jeden odcinek tabeli (tabela SEGMENT w H2): czas w minutach, koszt w groszach.
- * W praktyce zawsze start <-> atrakcja albo start <-> lokal.
  * Odcinki są symetryczne: A -> B kosztuje i trwa tyle samo co B -> A,
  * więc wystarczy jeden wiersz na parę i tryb. Dane startowe: data.sql.
  */
