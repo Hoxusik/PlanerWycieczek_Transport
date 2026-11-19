@@ -42,17 +42,17 @@ Jednodniowa wycieczka po jednym mieście w godzinach **10:00–16:00**.
 
 ## 2. Zespoły, serwisy i adresy w sieci laboratoryjnej
 
-| # | Zespół | Adres IP | Posiada | Korzysta z |
+| # | Zespół | Adres (IP:port) | Posiada | Korzysta z |
 |---|---|---|---|---|
 | 1 | Atrakcje | `172.20.147.24` | katalog atrakcji: kategorie, lokalizacje, ceny, czasy zwiedzania, czy pod dachem | Warunki dnia, **Transport** |
 | 2 | Gastronomia | `172.20.147.27` | lokale, posiłki, ceny, diety, czas wizyty | **Transport** |
-| **3** | **Transport (my)** | **`172.20.147.17`** | **tabela odcinków między lokalizacjami: czas i koszt dla par w danym trybie** | **nikogo** |
+| **3** | **Transport (my)** | **`172.20.147.17:8083`** | **tabela odcinków między lokalizacjami: czas i koszt dla par w danym trybie** | **nikogo** |
 | 4 | Warunki dnia | `172.20.147.21` | przygotowane prognozy dla dat demonstracyjnych | nikogo |
-| 5 | Planer i integracja | `172.20.147.14` | formularz i widok planu, kolejność wizyt, kontrola budżetu i godzin; bez własnej bazy | Atrakcje, Gastronomia, **Transport** |
+| 5 | Planer i integracja | `172.20.147.15:8090` | formularz i widok planu, kolejność wizyt, kontrola budżetu i godzin; bez własnej bazy | Atrakcje, Gastronomia, **Transport** |
 
 **Nasz serwis:** `http://172.20.147.17:8083`
 
-Porty pozostałych zespołów: _do uzupełnienia_.
+Porty Atrakcji, Gastronomii i Warunków dnia: _do uzupełnienia_.
 
 ### Zależności (strzałka od klienta do dostawcy API)
 
