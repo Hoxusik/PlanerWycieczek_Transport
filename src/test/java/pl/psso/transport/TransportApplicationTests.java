@@ -1,5 +1,6 @@
 package pl.psso.transport;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,12 +24,12 @@ class TransportApplicationTests {
     void returnsTimeAndCostInBothDirectionsAndNoConnection() throws Exception {
         String body = """
                 {"mode":"WALK","pairs":[
-                  {"fromLocationId":"start","toLocationId":"attr-01"},
-                  {"fromLocationId":"attr-01","toLocationId":"start"},
-                  {"fromLocationId":"start","toLocationId":"attr-06"},
+                  {"fromLocationId":"start","toLocationId":"ATR_001"},
+                  {"fromLocationId":"ATR_001","toLocationId":"start"},
+                  {"fromLocationId":"start","toLocationId":"rest-04"},
                   {"fromLocationId":"start","toLocationId":"start"},
                   {"fromLocationId":"start","toLocationId":"rest-01"},
-                  {"fromLocationId":"attr-01","toLocationId":"rest-01"}
+                  {"fromLocationId":"ATR_001","toLocationId":"rest-01"}
                 ]}""";
         mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
@@ -36,7 +37,7 @@ class TransportApplicationTests {
                 .andExpect(jsonPath("$.results[0].status").value("OK"))
                 .andExpect(jsonPath("$.results[0].durationMin").value(15))
                 .andExpect(jsonPath("$.results[0].costGrosze").value(0))
-                .andExpect(jsonPath("$.results[1].fromLocationId").value("attr-01"))
+                .andExpect(jsonPath("$.results[1].fromLocationId").value("ATR_001"))
                 .andExpect(jsonPath("$.results[1].durationMin").value(15))
                 .andExpect(jsonPath("$.results[2].status").value("NO_CONNECTION"))
                 .andExpect(jsonPath("$.results[2].durationMin").doesNotExist())
@@ -50,7 +51,7 @@ class TransportApplicationTests {
     @Test
     void unknownModeIsBadRequest() throws Exception {
         String body = """
-                {"mode":"TELEPORT","pairs":[{"fromLocationId":"start","toLocationId":"attr-01"}]}""";
+                {"mode":"TELEPORT","pairs":[{"fromLocationId":"start","toLocationId":"ATR_001"}]}""";
         mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("BAD_REQUEST"));
@@ -67,8 +68,8 @@ class TransportApplicationTests {
     void listsLocationsFromDatabase() throws Exception {
         mvc.perform(get("/api/v1/locations"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(11))
-                .andExpect(jsonPath("$[0]").value("attr-01"));
+                .andExpect(jsonPath("$").value(containsInAnyOrder(
+                        "ATR_001", "ATR_002", "ATR_004", "rest-01", "rest-02", "rest-03", "rest-04", "start")));
     }
 
     @Test

@@ -111,7 +111,7 @@ Kto o co pyta:
 
 | Co | Format | Przykład |
 |---|---|---|
-| lokalizacja | `locationId`, string | `start`, `attr-01`, `rest-01` |
+| lokalizacja | `locationId`, string | `start`, `ATR_001`, `rest-01` |
 | czas | minuty, liczba całkowita | `durationMin: 15` |
 | koszt | **grosze**, liczba całkowita, **na 1 osobę** | `costGrosze: 480` = 4,80 zł |
 | data | `YYYY-MM-DD` | `2026-11-20` (Transport nie używa daty) |
@@ -144,11 +144,11 @@ Content-Type: application/json
 {
   "mode": "WALK",
   "pairs": [
-    { "fromLocationId": "start",   "toLocationId": "attr-01" },
-    { "fromLocationId": "attr-01", "toLocationId": "start" },
+    { "fromLocationId": "start",   "toLocationId": "ATR_001" },
+    { "fromLocationId": "ATR_001", "toLocationId": "start" },
     { "fromLocationId": "start",   "toLocationId": "rest-01" },
-    { "fromLocationId": "start",   "toLocationId": "attr-06" },
-    { "fromLocationId": "attr-01", "toLocationId": "rest-01" }
+    { "fromLocationId": "start",   "toLocationId": "rest-04" },
+    { "fromLocationId": "ATR_001", "toLocationId": "rest-01" }
   ]
 }
 ```
@@ -159,16 +159,16 @@ Odpowiedź `200 OK`:
 {
   "mode": "WALK",
   "results": [
-    { "fromLocationId": "start",   "toLocationId": "attr-01", "status": "OK", "durationMin": 15, "costGrosze": 0 },
-    { "fromLocationId": "attr-01", "toLocationId": "start",   "status": "OK", "durationMin": 15, "costGrosze": 0 },
+    { "fromLocationId": "start",   "toLocationId": "ATR_001", "status": "OK", "durationMin": 15, "costGrosze": 0 },
+    { "fromLocationId": "ATR_001", "toLocationId": "start",   "status": "OK", "durationMin": 15, "costGrosze": 0 },
     { "fromLocationId": "start",   "toLocationId": "rest-01", "status": "OK", "durationMin": 9,  "costGrosze": 0 },
-    { "fromLocationId": "start",   "toLocationId": "attr-06", "status": "NO_CONNECTION" },
-    { "fromLocationId": "attr-01", "toLocationId": "rest-01", "status": "NO_CONNECTION" }
+    { "fromLocationId": "start",   "toLocationId": "rest-04", "status": "NO_CONNECTION" },
+    { "fromLocationId": "ATR_001", "toLocationId": "rest-01", "status": "NO_CONNECTION" }
   ]
 }
 ```
 
-W tym przykładzie `start → attr-06` daje `NO_CONNECTION`, bo pieszo jest za daleko. `attr-01 → rest-01` też daje `NO_CONNECTION`, bo to para bez `start`, a takich nie liczymy.
+W tym przykładzie `start → rest-04` daje `NO_CONNECTION`, bo pieszo jest za daleko. `ATR_001 → rest-01` też daje `NO_CONNECTION`, bo to para bez `start`, a takich nie liczymy.
 
 Reguły:
 - `mode` jest wymagany. `pairs` jest wymagane, niepuste i ma maksymalnie 500 elementów.
@@ -201,7 +201,7 @@ Gotowe pliki z prawdziwymi odpowiedziami są w [examples/](examples/). Klienci m
 Szybki test z innego komputera (PowerShell):
 
 ```powershell
-Invoke-RestMethod http://172.20.147.17:8083/api/v1/routes -Method Post -ContentType 'application/json' -Body '{"mode":"WALK","pairs":[{"fromLocationId":"start","toLocationId":"attr-01"}]}'
+Invoke-RestMethod http://172.20.147.17:8083/api/v1/routes -Method Post -ContentType 'application/json' -Body '{"mode":"WALK","pairs":[{"fromLocationId":"start","toLocationId":"ATR_001"}]}'
 ```
 
 ---
@@ -229,7 +229,7 @@ Na kolumnach (`from_location_id`, `to_location_id`, `mode`) jest ograniczenie un
 
 ```sql
 INSERT INTO segment (from_location_id, to_location_id, mode, duration_min, cost_grosze) VALUES
-('start', 'attr-01', 'WALK', 15, 0),
+('start', 'ATR_001', 'WALK', 15, 0),
 ...
 ```
 
@@ -251,27 +251,24 @@ Każda lokalizacja ma umowną odległość od `start`. Czas i koszt policzono ze
 | `PUBLIC_TRANSPORT` | 5 min + 3 min/km | 480 gr (bilet) | |
 | `CAR` (taxi) | 3 min + 2 min/km | 900 gr + 350 gr/km | |
 
-Tymczasowe lokalizacje: `start`, atrakcje `attr-01` … `attr-06`, lokale `rest-01` … `rest-04`.
-`attr-05`, `attr-06` i `rest-04` są za daleko na pieszo (`WALK` daje `NO_CONNECTION`).
+Lokalizacje: `start`, atrakcje `ATR_001`, `ATR_002`, `ATR_004` oraz lokale `rest-01`, `rest-02`, `rest 03`, `rest-04`.
+Dla `rest-04` tryb `WALK` zwraca `NO_CONNECTION`.
 
-> **Do zrobienia:** podmienić `locationId` na identyfikatory od Atrakcji (`172.20.147.24`) i Gastronomii (`172.20.147.27`) oraz dobrać czasy tak, żeby pasowały do ich danych.
+> **Do zrobienia:** dopasować czasy i koszty do rzeczywistych tras.
 
 ### Pełna tabela odcinków (czas min / koszt gr, w obie strony)
 
 | Od `start` do | WALK | PUBLIC_TRANSPORT | CAR |
 |---|---|---|---|
-| `attr-01` | 15 / 0 | 9 / 480 | 6 / 1320 |
-| `attr-02` | 21 / 0 | 11 / 480 | 7 / 1495 |
-| `attr-03` | 28 / 0 | 12 / 480 | 8 / 1705 |
-| `attr-04` | 29 / 0 | 13 / 480 | 8 / 1740 |
-| `attr-05` | brak | 17 / 480 | 11 / 2230 |
-| `attr-06` | brak | 28 / 480 | 19 / 3560 |
+| `ATR_001` | 15 / 0 | 9 / 480 | 6 / 1320 |
+| `ATR_002` | 21 / 0 | 11 / 480 | 7 / 1495 |
+| `ATR_004` | 29 / 0 | 13 / 480 | 8 / 1740 |
 | `rest-01` | 9 / 0 | 8 / 480 | 5 / 1145 |
 | `rest-02` | 22 / 0 | 11 / 480 | 7 / 1530 |
-| `rest-03` | 34 / 0 | 14 / 480 | 9 / 1880 |
+| `rest 03` | 34 / 0 | 14 / 480 | 9 / 1880 |
 | `rest-04` | brak | 26 / 480 | 17 / 3245 |
 
-Przykład ręcznego liczenia, `PUBLIC_TRANSPORT`, start → `attr-02` i z powrotem: 11 + 11 = **22 min**, 480 + 480 = **960 gr**.
+Przykład ręcznego liczenia, `PUBLIC_TRANSPORT`, start → `ATR_002` i z powrotem: 11 + 11 = **22 min**, 480 + 480 = **960 gr**.
 
 ---
 
@@ -347,7 +344,7 @@ Aby zmienić dane na stałe, edytuj `src/main/resources/data.sql` i zrestartuj s
 
 ## 10. Otwarte sprawy do uzgodnienia
 
-- [ ] `locationId` atrakcji (od zespołu 1) i lokali (od zespołu 2); nazwa i położenie punktu `start`; miasto
+- [ ] nazwa i położenie punktu `start`; miasto
 - [ ] lista trybów w formularzu Planera (zespół 5)
 - [ ] potwierdzenie limitu oczekiwania 2 s
 - [ ] lokalizacje użyte w scenariuszu pokazu i ręcznie policzony plan

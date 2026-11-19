@@ -3,13 +3,13 @@
   "results": [
     {
       "fromLocationId": "start",
-      "toLocationId": "attr-01",
+      "toLocationId": "ATR_001",
       "status": "OK",
       "durationMin": 15,
       "costGrosze": 0
     },
     {
-      "fromLocationId": "attr-01",
+      "fromLocationId": "ATR_001",
       "toLocationId": "start",
       "status": "OK",
       "durationMin": 15,
@@ -24,11 +24,11 @@
     },
     {
       "fromLocationId": "start",
-      "toLocationId": "attr-06",
+      "toLocationId": "rest-04",
       "status": "NO_CONNECTION"
     },
     {
-      "fromLocationId": "attr-01",
+      "fromLocationId": "ATR_001",
       "toLocationId": "rest-01",
       "status": "NO_CONNECTION"
     }
