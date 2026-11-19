@@ -26,7 +26,9 @@ class TransportApplicationTests {
                   {"fromLocationId":"start","toLocationId":"attr-01"},
                   {"fromLocationId":"attr-01","toLocationId":"start"},
                   {"fromLocationId":"start","toLocationId":"attr-06"},
-                  {"fromLocationId":"start","toLocationId":"start"}
+                  {"fromLocationId":"start","toLocationId":"start"},
+                  {"fromLocationId":"start","toLocationId":"rest-01"},
+                  {"fromLocationId":"attr-01","toLocationId":"rest-01"}
                 ]}""";
         mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
@@ -38,7 +40,11 @@ class TransportApplicationTests {
                 .andExpect(jsonPath("$.results[1].durationMin").value(15))
                 .andExpect(jsonPath("$.results[2].status").value("NO_CONNECTION"))
                 .andExpect(jsonPath("$.results[2].durationMin").doesNotExist())
-                .andExpect(jsonPath("$.results[3].durationMin").value(0));
+                .andExpect(jsonPath("$.results[3].durationMin").value(0))
+                .andExpect(jsonPath("$.results[4].status").value("OK"))
+                .andExpect(jsonPath("$.results[4].durationMin").value(9))
+                // poza modelem "od startu": brak odcinka atrakcja -> lokal
+                .andExpect(jsonPath("$.results[5].status").value("NO_CONNECTION"));
     }
 
     @Test

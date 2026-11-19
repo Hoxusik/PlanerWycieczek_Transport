@@ -1,25 +1,10 @@
 {
   "mode": "WALK",
   "pairs": [
-    {
-      "fromLocationId": "start",
-      "toLocationId": "attr-01"
-    },
-    {
-      "fromLocationId": "attr-01",
-      "toLocationId": "rest-01"
-    },
-    {
-      "fromLocationId": "rest-01",
-      "toLocationId": "attr-03"
-    },
-    {
-      "fromLocationId": "attr-03",
-      "toLocationId": "start"
-    },
-    {
-      "fromLocationId": "start",
-      "toLocationId": "attr-06"
-    }
+    { "fromLocationId": "start",   "toLocationId": "attr-01" },
+    { "fromLocationId": "attr-01", "toLocationId": "start" },
+    { "fromLocationId": "start",   "toLocationId": "rest-01" },
+    { "fromLocationId": "start",   "toLocationId": "attr-06" },
+    { "fromLocationId": "attr-01", "toLocationId": "rest-01" }
   ]
 }

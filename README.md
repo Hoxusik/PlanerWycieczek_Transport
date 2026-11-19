@@ -64,20 +64,26 @@ propozycje      └──────────────┘           └�
 │ i integracja   │   pozostałe odcinki    │ 3. TRANSPORT │
 └────────┬───────┘                        └──────────────┘
          │ posiłki     ┌──────────────┐        ▲
-         └───────────► │2. Gastronomia│ ───────┘ od atrakcji
+         └───────────► │2. Gastronomia│ ───────┘ od startu
                        └──────────────┘
 ```
 
 Transport i Warunki dnia nie zależą od nikogo, więc **jako pierwsze udostępniają przykładowe odpowiedzi**.
 
-### Jak Planer składa plan
+### Model odległości w Transporcie: wszystko liczone od jednego punktu `start`
 
-1. Planer prosi **Atrakcje** o propozycje na dany dzień. Atrakcje pytają **Transport** o dojazd **start → atrakcja** i zwracają propozycje z kosztem i czasem dojazdu. Planer wybiera pierwszą atrakcję.
-2. Planer prosi **Gastronomię** o posiłki. Gastronomia pyta **Transport** o dojazd **atrakcja 1 → lokal**.
-3. Planer sam pyta **Transport** o pozostałe odcinki: **lokal → atrakcja 2** i **atrakcja 2 → start**.
-4. Planer sprawdza budżet i okno 10:00–16:00.
+W mieście jest **jeden punkt startowy** (`start`). Transport zna odległości **tylko**:
+- **start ↔ atrakcja** (dojazd do atrakcji i powrót),
+- **start ↔ lokal gastronomiczny** (dojazd do lokalu i powrót).
 
-Atrakcja daleko od startu może pasować na drugą wizytę, jeśli leży blisko restauracji. Dlatego potrzebujemy odcinków lokal ↔ atrakcja.
+**Nie** liczymy odległości atrakcja ↔ atrakcja ani atrakcja ↔ lokal. Taka para dostaje odpowiedź `NO_CONNECTION`.
+
+Kto o co pyta:
+- **Atrakcje** pytają o `start → atrakcja` dla swoich atrakcji.
+- **Gastronomia** pyta o `start → lokal` dla swoich lokali.
+- **Planer** pyta o dowolne pary ze `start`, np. powrót `atrakcja → start`.
+
+> Slajdy proponowały też odcinki atrakcja → lokal → atrakcja. Nasz zespół celowo zawęził zakres do odległości od startu. Ten model trzeba uzgodnić z Gastronomią i Planerem.
 
 ---
 
@@ -93,10 +99,11 @@ Atrakcja daleko od startu może pasować na drugą wizytę, jeśli leży blisko 
 
 | Odcinek | Kto o niego pyta | W tabeli? |
 |---|---|---|
-| start ↔ atrakcja | Atrakcje, Planer (powrót) | tak |
-| atrakcja ↔ lokal | Gastronomia, Planer | tak |
-| atrakcja ↔ atrakcja | nikt, bo w planie nie ma takiego przejazdu | nie (`NO_CONNECTION`) |
-| start ↔ lokal, lokal ↔ lokal | nikt | nie (`NO_CONNECTION`) |
+| start ↔ atrakcja | Atrakcje, Planer | tak |
+| start ↔ lokal | Gastronomia, Planer | tak |
+| atrakcja ↔ atrakcja | — | nie (`NO_CONNECTION`) |
+| atrakcja ↔ lokal | — | nie (`NO_CONNECTION`) |
+| lokal ↔ lokal | — | nie (`NO_CONNECTION`) |
 
 ---
 
@@ -138,10 +145,10 @@ Content-Type: application/json
   "mode": "WALK",
   "pairs": [
     { "fromLocationId": "start",   "toLocationId": "attr-01" },
-    { "fromLocationId": "attr-01", "toLocationId": "rest-01" },
-    { "fromLocationId": "rest-01", "toLocationId": "attr-03" },
-    { "fromLocationId": "attr-03", "toLocationId": "start" },
-    { "fromLocationId": "start",   "toLocationId": "attr-06" }
+    { "fromLocationId": "attr-01", "toLocationId": "start" },
+    { "fromLocationId": "start",   "toLocationId": "rest-01" },
+    { "fromLocationId": "start",   "toLocationId": "attr-06" },
+    { "fromLocationId": "attr-01", "toLocationId": "rest-01" }
   ]
 }
 ```
@@ -153,13 +160,15 @@ Odpowiedź `200 OK`:
   "mode": "WALK",
   "results": [
     { "fromLocationId": "start",   "toLocationId": "attr-01", "status": "OK", "durationMin": 15, "costGrosze": 0 },
-    { "fromLocationId": "attr-01", "toLocationId": "rest-01", "status": "OK", "durationMin": 15, "costGrosze": 0 },
-    { "fromLocationId": "rest-01", "toLocationId": "attr-03", "status": "OK", "durationMin": 21, "costGrosze": 0 },
-    { "fromLocationId": "attr-03", "toLocationId": "start",   "status": "OK", "durationMin": 28, "costGrosze": 0 },
-    { "fromLocationId": "start",   "toLocationId": "attr-06", "status": "NO_CONNECTION" }
+    { "fromLocationId": "attr-01", "toLocationId": "start",   "status": "OK", "durationMin": 15, "costGrosze": 0 },
+    { "fromLocationId": "start",   "toLocationId": "rest-01", "status": "OK", "durationMin": 9,  "costGrosze": 0 },
+    { "fromLocationId": "start",   "toLocationId": "attr-06", "status": "NO_CONNECTION" },
+    { "fromLocationId": "attr-01", "toLocationId": "rest-01", "status": "NO_CONNECTION" }
   ]
 }
 ```
+
+W tym przykładzie `start → attr-06` daje `NO_CONNECTION`, bo pieszo jest za daleko. `attr-01 → rest-01` też daje `NO_CONNECTION`, bo to para bez `start`, a takich nie liczymy.
 
 Reguły:
 - `mode` jest wymagany. `pairs` jest wymagane, niepuste i ma maksymalnie 500 elementów.
@@ -216,16 +225,15 @@ Tabela `SEGMENT`:
 
 Na kolumnach (`from_location_id`, `to_location_id`, `mode`) jest ograniczenie unikalności. Jeden wiersz obsługuje oba kierunki, a brak wiersza oznacza `NO_CONNECTION`.
 
-**Źródłem prawdy jest plik [src/main/resources/segments.csv](src/main/resources/segments.csv)** trzymany w repo. Przy starcie [SegmentSeeder](src/main/java/pl/psso/transport/data/SegmentSeeder.java) wczytuje go do bazy:
+**Dane startowe są w [src/main/resources/data.sql](src/main/resources/data.sql)**. Spring Boot wykonuje ten skrypt przy **każdym** starcie: najpierw `DELETE FROM segment`, potem `INSERT`. Dzięki temu baza zawsze odpowiada temu, co jest w repo.
 
-```
-fromLocationId,toLocationId,mode,durationMin,costGrosze
-start,attr-01,WALK,15,0
+```sql
+INSERT INTO segment (from_location_id, to_location_id, mode, duration_min, cost_grosze) VALUES
+('start', 'attr-01', 'WALK', 15, 0),
+...
 ```
 
-Linie z `#` to komentarze. Zachowanie przy starcie określa `transport.reset-data-on-start` w `application.yml`:
-- `true` (domyślnie): tabela jest czyszczona i wczytywana z CSV, więc dane zawsze odpowiadają repo. Zmiany zrobione w konsoli H2 działają **do restartu**.
-- `false`: CSV jest wczytywany tylko do pustej bazy, więc zmiany z konsoli H2 przetrwają restart. Żeby wrócić do CSV, usuń folder `data/`.
+Zmiany zrobione w konsoli H2 działają tylko **do restartu**. Zmiany na stałe wprowadzaj w `data.sql`.
 
 **Konsola H2** do podglądu i edycji na żywo działa tylko z komputera, na którym uruchomiono serwis:
 `http://localhost:8083/h2-console`. JDBC URL: `jdbc:h2:file:./data/transport;AUTO_SERVER=TRUE`, użytkownik `sa`, hasło puste.
@@ -235,7 +243,7 @@ Testy używają osobnej bazy w pamięci (`jdbc:h2:mem:...`), więc nie ruszają 
 
 ### Dane syntetyczne (tymczasowe)
 
-Lokalizacje mają umowne współrzędne na siatce miasta. Czas i koszt policzono ze wzorów:
+Każda lokalizacja ma umowną odległość od `start`. Czas i koszt policzono ze wzorów:
 
 | Tryb | Czas | Koszt | Uwagi |
 |---|---|---|---|
@@ -244,21 +252,26 @@ Lokalizacje mają umowne współrzędne na siatce miasta. Czas i koszt policzono
 | `CAR` (taxi) | 3 min + 2 min/km | 900 gr + 350 gr/km | |
 
 Tymczasowe lokalizacje: `start`, atrakcje `attr-01` … `attr-06`, lokale `rest-01` … `rest-04`.
-`attr-06` leży daleko od startu (pieszo `NO_CONNECTION`), ale blisko `rest-04`. To przypadek „daleka atrakcja jako druga wizyta”.
+`attr-05`, `attr-06` i `rest-04` są za daleko na pieszo (`WALK` daje `NO_CONNECTION`).
 
 > **Do zrobienia:** podmienić `locationId` na identyfikatory od Atrakcji (`172.20.147.24`) i Gastronomii (`172.20.147.27`) oraz dobrać czasy tak, żeby pasowały do ich danych.
 
-### Przykład ręcznego przeliczenia (WALK)
+### Pełna tabela odcinków (czas min / koszt gr, w obie strony)
 
-| Odcinek | Czas | Koszt |
-|---|---|---|
-| start → attr-01 | 15 min | 0 gr |
-| attr-01 → rest-01 | 15 min | 0 gr |
-| rest-01 → attr-03 | 21 min | 0 gr |
-| attr-03 → start | 28 min | 0 gr |
-| **Razem transport** | **79 min** | **0 gr** |
+| Od `start` do | WALK | PUBLIC_TRANSPORT | CAR |
+|---|---|---|---|
+| `attr-01` | 15 / 0 | 9 / 480 | 6 / 1320 |
+| `attr-02` | 21 / 0 | 11 / 480 | 7 / 1495 |
+| `attr-03` | 28 / 0 | 12 / 480 | 8 / 1705 |
+| `attr-04` | 29 / 0 | 13 / 480 | 8 / 1740 |
+| `attr-05` | brak | 17 / 480 | 11 / 2230 |
+| `attr-06` | brak | 28 / 480 | 19 / 3560 |
+| `rest-01` | 9 / 0 | 8 / 480 | 5 / 1145 |
+| `rest-02` | 22 / 0 | 11 / 480 | 7 / 1530 |
+| `rest-03` | 34 / 0 | 14 / 480 | 9 / 1880 |
+| `rest-04` | brak | 26 / 480 | 17 / 3245 |
 
-Planer dodaje do tego czasy zwiedzania i posiłku oraz ceny biletów i posiłku z Atrakcji i Gastronomii.
+Przykład ręcznego liczenia, `PUBLIC_TRANSPORT`, start → `attr-02` i z powrotem: 11 + 11 = **22 min**, 480 + 480 = **960 gr**.
 
 ---
 
@@ -280,11 +293,10 @@ src/main/java/pl/psso/transport/
 │  └─ RouteService.java            # logika: A->A = 0, szukanie w obu kierunkach, NO_CONNECTION
 └─ data/
    ├─ Segment.java                 # encja JPA, tabela SEGMENT
-   ├─ SegmentRepository.java       # zapytania do H2 (oba kierunki, lista locationId)
-   └─ SegmentSeeder.java           # wczytuje segments.csv do bazy przy starcie
+   └─ SegmentRepository.java       # zapytania do H2 (oba kierunki, lista locationId)
 src/main/resources/
-├─ application.yml                 # port, adres, baza H2, konsola, plik startowy, limit par
-└─ segments.csv                    # dane startowe tabeli odcinków (źródło prawdy)
+├─ application.yml                 # port, adres, baza H2, konsola, limit par
+└─ data.sql                        # dane startowe tabeli SEGMENT (wykonywane przy każdym starcie)
 data/                              # plik bazy H2 (tworzony automatycznie, poza gitem)
 src/test/java/.../TransportApplicationTests.java   # testy kontraktu (MockMvc)
 examples/                          # przykładowe żądania i odpowiedzi dla innych zespołów
@@ -316,7 +328,7 @@ Sprawdzenie z innego komputera: `http://172.20.147.17:8083/health`
 
 Podgląd bazy (tylko lokalnie): `http://localhost:8083/h2-console`
 
-Aby zmienić dane na stałe, edytuj `segments.csv` i zrestartuj serwis.
+Aby zmienić dane na stałe, edytuj `src/main/resources/data.sql` i zrestartuj serwis.
 
 ---
 
@@ -326,7 +338,8 @@ Aby zmienić dane na stałe, edytuj `segments.csv` i zrestartuj serwis.
 - Czas zawsze w **minutach**, koszt zawsze w **groszach**, oba jako liczby całkowite.
 - `NO_CONNECTION` to **nie** błąd: zawsze zwracamy go jako `200`.
 - Transport nie wywołuje innych serwisów i nie czyta niczyjej bazy. Nasza baza H2 jest wyłącznie nasza, a inni widzą dane tylko przez API.
-- Dane zmieniaj w `segments.csv` (źródło prawdy w repo), a nie wyłącznie w konsoli H2.
+- Dane zmieniaj w `data.sql`, a nie wyłącznie w konsoli H2, bo zmiany z konsoli znikają po restarcie.
+- Liczymy tylko odcinki ze `start`. Nie dodawaj odcinków atrakcja ↔ atrakcja ani atrakcja ↔ lokal.
 - Po każdej zmianie uruchom `.\mvnw.cmd test`, a gdy zmienia się format odpowiedzi, zaktualizuj [examples/](examples/).
 - Pracuj na osobnych gałęziach i scalaj do `main`.
 
