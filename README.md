@@ -2,6 +2,8 @@
 
 Mikroserwis **Transport** (zespół 3) w projekcie **Planer Wycieczek**. Zwraca czas i koszt przejazdu dla par lokalizacji w wybranym trybie przemieszczania się (HTTP + JSON).
 
+> **Dla innych zespołów:** skrócony kontrakt API (co przyjmujemy i co zwracamy) jest w [KONTRAKT_API.md](KONTRAKT_API.md).
+>
 > Ten plik opisuje cały kontekst projektu. Można go w całości wkleić do prompta agenta AI, żeby wiedział, co budujemy, jakie są zasady i czego nie wolno zmieniać bez uzgodnienia z innymi zespołami.
 
 ---
