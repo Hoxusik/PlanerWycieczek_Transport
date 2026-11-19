@@ -61,7 +61,7 @@ Odpowiedź `200 OK` dla tej pary zawiera dwie opcje.
 
 ## `POST /api/v1/routes`
 
-Czas i koszt dla wielu par w jednym trybie: `mode` jest wymagany, `pairs` ma od 1 do 500 elementów.
+Czas i koszt dla wielu par w jednym trybie: `mode` jest wymagany, `pairs` ma od 1 do 500 elementów. Działa dla dowolnych par, także bez `start` (np. `ATR_001` → `rest-01`).
 
 ```json
 {
@@ -91,7 +91,7 @@ Czas i koszt dla wielu par w jednym trybie: `mode` jest wymagany, `pairs` ma od 
 | Sytuacja | Odpowiedź |
 |---|---|
 | brak połączenia | `200`: `NO_CONNECTION` albo puste `options` |
-| błędne żądanie (brak pól, nieznany tryb, zły JSON) | `400` `{"error":"BAD_REQUEST","message":"..."}` |
+| błędne żądanie: brak pól, nieznany tryb, zły JSON; w `/to/` także `start`, dwa takie same ID albo puste ID | `400` `{"error":"BAD_REQUEST","message":"..."}` |
 | awaria Transportu | `500` `{"error":"INTERNAL_ERROR","message":"..."}` |
 | brak odpowiedzi w 2 s | traktować jako „Transport niedostępny”, a nie „brak planu” |
 
@@ -112,7 +112,28 @@ Pomocnicze: `GET /health`, `GET /api/v1/modes`, `GET /api/v1/locations`.
 | `rest-03` | 34 / 0 | 14 / 480 | 9 / 1880 |
 | `rest-04` | brak | 26 / 480 | 17 / 3245 |
 
-Dane wszystkich par są w [data.sql](src/main/resources/data.sql).
+## Odcinki atrakcja ↔ lokal (czas min / koszt gr, w jedną stronę)
+
+| | `WALK` | `PUBLIC_TRANSPORT` | `CAR` |
+|---|---|---|---|
+| `ATR_001` ↔ `rest-01` | 12 / 0 | 10 / 480 | brak |
+| `ATR_001` ↔ `rest-02` | 21 / 0 | brak | 8 / 1530 |
+| `ATR_001` ↔ `rest-03` | 27 / 0 | 15 / 480 | 9 / 1705 |
+| `ATR_001` ↔ `rest-04` | brak | 24 / 480 | 15 / 2965 |
+| `ATR_002` ↔ `rest-01` | 17 / 0 | 12 / 480 | brak |
+| `ATR_002` ↔ `rest-02` | 14 / 0 | brak | brak |
+| `ATR_002` ↔ `rest-03` | 24 / 0 | 14 / 480 | 9 / 1635 |
+| `ATR_002` ↔ `rest-04` | 58 / 0 | 22 / 480 | 14 / 2580 |
+| `ATR_004` ↔ `rest-01` | 26 / 0 | 14 / 480 | brak |
+| `ATR_004` ↔ `rest-02` | 13 / 0 | brak | brak |
+| `ATR_004` ↔ `rest-03` | 15 / 0 | brak | 7 / 1355 |
+| `ATR_004` ↔ `rest-04` | 52 / 0 | 20 / 480 | 13 / 2440 |
+| `ATR_005` ↔ `rest-01` | 20 / 0 | 13 / 480 | 8 / 1495 |
+| `ATR_005` ↔ `rest-02` | 11 / 0 | brak | brak |
+| `ATR_005` ↔ `rest-03` | 19 / 0 | 12 / 480 | brak |
+| `ATR_005` ↔ `rest-04` | 55 / 0 | 21 / 480 | brak |
+
+Odcinki atrakcja ↔ atrakcja i lokal ↔ lokal też istnieją. Wszystkie dane są w [data.sql](https://github.com/Hoxusik/PlanerWycieczek_Transport/blob/main/src/main/resources/data.sql).
 
 ID lokali `rest-0x` są tymczasowe. Gastronomio, podeślijcie swoje ID.
 
